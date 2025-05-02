@@ -1165,7 +1165,11 @@ class GRPOTrainer(Trainer):
                     # Repeat all input columns (but "prompt" and "completion") to match the number of generations
                     keys = [key for key in inputs[0] if key not in ["prompt", "completion"]]
                     reward_kwargs = {key: [example[key] for example in inputs] for key in keys}
-                    output_reward_func = reward_func(prompts=prompts, completions=completions, **reward_kwargs)
+                    if self.ref_model is not None:
+                        output_reward_func = reward_func(prompts=prompts, completions=completions, ref_model=self.ref_model, tokenizer=self.processing_class, **reward_kwargs)
+                    else:
+                        with self.accelerator.unwrap_model(self.model).disable_adapter():
+                            output_reward_func = reward_func(prompts=prompts, completions=completions, ref_model=self.model, tokenizer=self.processing_class, **reward_kwargs)
                     # Convert None values to NaN
                     output_reward_func = [reward if reward is not None else torch.nan for reward in output_reward_func]
 
